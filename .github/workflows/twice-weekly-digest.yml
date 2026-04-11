@@ -1,0 +1,61 @@
+name: SG Rental Twice-Weekly Digest
+
+on:
+  schedule:
+    # Wed 8am SGT = Wed 00:00 UTC (SGT = UTC+8)
+    - cron: '0 0 * * 3'
+    # Sun 8am SGT = Sun 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Restore seen listings cache
+        uses: actions/cache@v4
+        with:
+          path: data/seen_listings.json
+          key: seen-listings-${{ github.run_id }}
+          restore-keys: |
+            seen-listings-
+
+      - name: Write Gmail OAuth token from secret
+        # Writes the token.json so GmailAlertsCollector can authenticate
+        run: |
+          mkdir -p config
+          echo '${{ secrets.GMAIL_OAUTH_TOKEN }}' > config/token.json
+        if: secrets.GMAIL_OAUTH_TOKEN != ''
+
+      - name: Run digest
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+          ONEMAP_EMAIL: ${{ secrets.ONEMAP_EMAIL }}
+          ONEMAP_PASSWORD: ${{ secrets.ONEMAP_PASSWORD }}
+        run: python run.py --now
+
+      - name: Save updated seen listings
+        uses: actions/cache/save@v4
+        if: always()  # Save even if digest fails
+        with:
+          path: data/seen_listings.json
+          key: seen-listings-${{ github.run_id }}

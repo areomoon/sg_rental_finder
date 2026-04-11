@@ -1,0 +1,91 @@
+# SG Rental Finder — 詳細搜尋偏好
+# 這些偏好用於 ranker 評分和 filter 過濾
+
+# ── 住宅偏好 ───────────────────────────────
+unit_preferences:
+  # 房型偏好（依優先順序）
+  preferred_types:
+    - "1BR + Study"         # 最理想：1 臥室 + 書房
+    - "Compact 2BR"         # 小型 2 臥室
+    - "1BR"                 # 標準 1 臥室
+
+  # 必要條件
+  must_have:
+    - air_conditioning      # 全屋冷氣
+    - private_bathroom      # 獨立衛浴
+    - kitchen               # 廚房（非共用）
+
+  # 加分項目（有 = 提高評分）
+  nice_to_have:
+    - gym                   # 健身房
+    - pool                  # 泳池
+    - concierge             # 管理員
+    - covered_parking       # 有蓋停車位（非必要，2人不一定有車）
+    - high_floor            # 高樓層（景觀 + 安靜）
+    - balcony               # 陽台
+
+  # 扣分項目
+  avoid:
+    - ground_floor          # 地面層（安全 + 噪音）
+    - no_natural_light      # 無自然採光
+
+# ── 入住條件 ───────────────────────────────
+tenancy:
+  min_lease_months: 6
+  max_lease_months: 24
+  preferred_lease_months: 12
+  pets: false               # 不養寵物
+  smoking: false
+
+# ── 裝修/家具 ─────────────────────────────
+furnishing:
+  acceptable: [fully_furnished, partially_furnished, unfurnished]
+  # 全家具 = 最方便（移居），加分
+  preferred: fully_furnished
+
+# ── 大廈偏好 ───────────────────────────────
+building_preferences:
+  preferred_age_max_years: 20   # 偏好較新建案
+  min_units_in_development: 50  # 避免超小型開發（管理差）
+
+# ── 目標 MRT 站（依通勤優先）─────────────
+preferred_mrt_stations:
+  tier_1:  # ≤5 min commute to City Hall
+    - "City Hall"
+    - "Raffles Place"
+    - "Clarke Quay"
+    - "Bugis"
+    - "Esplanade"
+    - "Tanjong Pagar"
+    - "Dhoby Ghaut"
+  tier_2:  # 5-10 min commute
+    - "Outram Park"
+    - "Lavender"
+    - "Tiong Bahru"
+    - "Newton"
+    - "Somerset"
+    - "Chinatown"
+    - "Marina Bay"
+  tier_3:  # 10-15 min commute
+    - "Toa Payoh"
+    - "Novena"
+    - "Little India"
+    - "Paya Lebar"
+    - "Farrer Park"
+    - "Bras Basah"
+
+# ── 價格參考 ───────────────────────────────
+market_reference:
+  # 市場中位數（2025/2026，D01-D11 附近，1-2BR condo）
+  # 用於 ranker price_per_sqft 評分
+  median_psf_sgd: 6.5     # S$6.50/sqft/month 中位數估算
+  good_deal_psf: 5.5      # 低於此 = 性價比高
+  expensive_psf: 8.0      # 高於此 = 偏貴
+
+# ── 關鍵字黑名單（自動跳過）─────────────
+blacklist_keywords:
+  - "HDB"                 # 只找私人公寓，非組屋
+  - "room rental"         # 排除租房間
+  - "master bedroom"      # 排除租房間
+  - "common room"         # 排除租房間
+  - "sublet"              # 排除轉租（條件不穩定）

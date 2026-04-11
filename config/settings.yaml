@@ -1,0 +1,110 @@
+# SG Rental Finder — 主設定檔
+# 敏感資訊（API keys、密碼）請放在 .env，不要填在這裡
+
+# ── 搜尋條件 ───────────────────────────────
+search:
+  budget_max_sgd: 3800
+  property_types: [Condo, Apartment, Service Apartment]
+  bedroom_min: 1
+  bedroom_max: 2
+  furnished: any          # any | yes | no
+  min_sqft: 400           # 最小面積（sqft）
+  max_sqft: 1200
+
+# ── 工作地點 ───────────────────────────────
+work_locations:
+  - name: "Patsnap (Funan)"
+    address: "107 North Bridge Road, Funan, Singapore 179105"
+    nearest_mrt: "City Hall"
+    mrt_code: "EW13/NS25"
+    weight: 0.65          # 主要上班地點，權重較高
+  - name: "Raffles Place"
+    address: "Raffles Place MRT, Singapore"
+    nearest_mrt: "Raffles Place"
+    mrt_code: "EW14/NS26"
+    weight: 0.35
+
+# ── 通勤設定 ───────────────────────────────
+commute:
+  max_total_minutes: 30   # 總通勤時間上限（含步行 + MRT）
+  prefer_walkable: true   # 優先步行可達
+  walkable_threshold_min: 15  # 15 分鐘內步行算「walkable」
+
+# ── 目標區域（依通勤排序）──────────────────
+target_areas:
+  - district: D01
+    name: "Boat Quay / Raffles Place"
+    priority: high
+    commute_tier: "≤5 min"
+  - district: D02
+    name: "Tanjong Pagar"
+    priority: high
+    commute_tier: "≤5 min"
+  - district: D06
+    name: "City Hall / Clarke Quay"
+    priority: high
+    commute_tier: "≤5 min"
+  - district: D07
+    name: "Bugis / Beach Road"
+    priority: high
+    commute_tier: "≤5 min"
+  - district: D08
+    name: "Farrer Park / Serangoon Road"
+    priority: medium
+    commute_tier: "10-15 min"
+  - district: D09
+    name: "Orchard / River Valley"
+    priority: medium
+    commute_tier: "5-10 min"
+  - district: D10
+    name: "Tanglin / Holland"
+    priority: medium
+    commute_tier: "5-10 min"
+  - district: D11
+    name: "Newton / Novena"
+    priority: medium
+    commute_tier: "5-10 min"
+  - district: D12
+    name: "Toa Payoh / Balestier"
+    priority: medium
+    commute_tier: "10-15 min"
+
+# ── 搬入日期 ───────────────────────────────
+move_in:
+  earliest: "2026-04-15"   # 越早越好（現在是 2026-04-11）
+  latest:   "2026-05-15"
+  preferred: "2026-05-04"  # 首選入住日
+
+# ── 摘要排程 ───────────────────────────────
+schedule:
+  # 每週三 + 週日，早上 8am SGT (UTC+8) = 00:00 UTC
+  days: ["Wednesday", "Sunday"]
+  time_sgt: "08:00"
+
+# ── Digest 設定 ────────────────────────────
+digest:
+  top_n: 10               # 每次最多推送幾筆
+  new_listings_threshold: 10  # Gmail 少於此數才啟用 scraper fallback
+
+# ── Collector 設定 ─────────────────────────
+collectors:
+  gmail:
+    label_name: "Rentals/PropertyGuru"
+    since_hours: 72       # 抓最近幾小時的 email（3 天）
+    scopes:
+      - "https://www.googleapis.com/auth/gmail.readonly"
+
+  scraper:
+    max_listings_per_run: 50
+    min_delay_seconds: 30  # 每次 page load 間隔
+    max_pages: 3
+    headless: true
+
+# ── Ranker 權重 ────────────────────────────
+ranker:
+  price_per_sqft_weight: 25   # 價格/面積 vs 市場中位數
+  commute_funan_weight: 30    # 到 Funan 通勤時間
+  commute_raffles_weight: 15  # 到 Raffles Place 通勤時間
+  days_on_market_weight: 10   # 上架天數（新 = 高分）
+  photo_count_weight: 5       # 照片數量
+  mrt_distance_weight: 15     # 到最近 MRT 距離
