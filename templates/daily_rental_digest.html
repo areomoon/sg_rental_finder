@@ -5,72 +5,162 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SG Rental Digest — {{DATE}}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
+<body style="margin:0;padding:0;background-color:#F8F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#212529;">
+
+  <!-- Preheader (hidden preview text in email clients) -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">{{COUNT}} new Singapore rental listings near City Hall / Raffles Place — S$3,800 budget &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
 
   <!-- Outer wrapper -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F8F9FA;padding:24px 16px;">
     <tr>
-      <td align="center">
-        <!-- Email container -->
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow:hidden;">
+      <td align="center" valign="top">
 
-          <!-- Header -->
+        <!-- Email container: max 600px -->
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- ─── HEADER ─────────────────────────────────────────── -->
           <tr>
-            <td style="background:linear-gradient(135deg,#1e40af 0%,#2563eb 100%);padding:28px 32px;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🏠 SG Rental Digest</h1>
-              <p style="margin:6px 0 0;color:#bfdbfe;font-size:14px;">{{DATE}} &nbsp;·&nbsp; {{COUNT}} new listings</p>
-              <p style="margin:6px 0 0;color:#bfdbfe;font-size:12px;">Budget ≤ S$3,800/mo &nbsp;·&nbsp; 1–2BR Condo &nbsp;·&nbsp; Near City Hall / Raffles Place</p>
+            <td style="background-color:#2E75B6;background-image:linear-gradient(135deg,#1a5a9a 0%,#2E75B6 60%,#3d8fd1 100%);padding:28px 32px 24px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:#a8d4f5;text-transform:uppercase;margin-bottom:6px;">SG RENTAL FINDER</div>
+                    <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;line-height:1.2;">Daily Rental Digest</h1>
+                    <p style="margin:6px 0 0;color:#c8e4f8;font-size:14px;">{{DATE}} &nbsp;&bull;&nbsp; {{COUNT}} new listings</p>
+                  </td>
+                  <td align="right" valign="top" style="padding-left:16px;">
+                    <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;min-width:60px;">
+                      <div style="font-size:28px;font-weight:800;color:#FFD966;line-height:1;">{{COUNT}}</div>
+                      <div style="font-size:10px;color:#c8e4f8;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">new</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <!-- Criteria pills -->
+              <div style="margin-top:14px;">
+                <span style="display:inline-block;background:rgba(255,255,255,0.2);color:#ffffff;font-size:11px;padding:4px 10px;border-radius:12px;margin:2px 4px 2px 0;">Budget ≤ S$3,800/mo</span>
+                <span style="display:inline-block;background:rgba(255,255,255,0.2);color:#ffffff;font-size:11px;padding:4px 10px;border-radius:12px;margin:2px 4px 2px 0;">1–2BR Condo</span>
+                <span style="display:inline-block;background:rgba(255,255,255,0.2);color:#ffffff;font-size:11px;padding:4px 10px;border-radius:12px;margin:2px 4px 2px 0;">Near City Hall / Raffles Place</span>
+              </div>
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- ─── BODY ───────────────────────────────────────────── -->
           <tr>
-            <td style="padding:24px 32px;">
+            <td style="padding:28px 32px 8px;">
 
-              <!-- Top Pick section -->
-              <h2 style="margin:0 0 16px;font-size:16px;font-weight:600;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">⭐ Top Pick</h2>
+              <!-- Top Pick heading -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
+                <tr>
+                  <td style="border-bottom:2px solid #2E75B6;padding-bottom:8px;">
+                    <span style="font-size:13px;font-weight:700;color:#2E75B6;text-transform:uppercase;letter-spacing:1px;">&#9733; Top Pick</span>
+                  </td>
+                </tr>
+              </table>
+
               {{TOP_CARD}}
 
-              <!-- Listings section -->
-              <h2 style="margin:24px 0 16px;font-size:16px;font-weight:600;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">📋 All New Listings</h2>
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <!-- All Listings heading -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 16px;">
+                <tr>
+                  <td style="border-bottom:1px solid #dee2e6;padding-bottom:8px;">
+                    <span style="font-size:13px;font-weight:700;color:#495057;text-transform:uppercase;letter-spacing:1px;">&#128203; All New Listings</span>
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 {{LISTING_CARDS}}
               </table>
 
             </td>
           </tr>
 
-          <!-- Score legend -->
+          <!-- ─── SCORE LEGEND ──────────────────────────────────── -->
           <tr>
-            <td style="padding:0 32px 24px;">
-              <div style="background:#f1f5f9;border-radius:8px;padding:12px 16px;font-size:12px;color:#64748b;">
-                <strong style="color:#374151;">Scoring breakdown (100 pts total):</strong><br />
-                Commute to Funan 30 · Price/sqft 25 · MRT walk 15 · Commute to Raffles 15 · Freshness 10 · Photos 5
-              </div>
+            <td style="padding:0 32px 20px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#f1f3f5;border-radius:8px;padding:12px 16px;">
+                    <div style="font-size:11px;font-weight:700;color:#495057;margin-bottom:6px;">SCORE BREAKDOWN (100 pts total)</div>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-size:11px;color:#6c757d;padding:1px 8px 1px 0;">&#128205; Commute to Funan</td>
+                        <td style="font-size:11px;font-weight:700;color:#2E75B6;text-align:right;">30 pts</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:11px;color:#6c757d;padding:1px 8px 1px 0;">&#128176; Price per sqft</td>
+                        <td style="font-size:11px;font-weight:700;color:#2E75B6;text-align:right;">25 pts</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:11px;color:#6c757d;padding:1px 8px 1px 0;">&#128643; MRT walkability</td>
+                        <td style="font-size:11px;font-weight:700;color:#2E75B6;text-align:right;">15 pts</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:11px;color:#6c757d;padding:1px 8px 1px 0;">&#128205; Commute to Raffles</td>
+                        <td style="font-size:11px;font-weight:700;color:#2E75B6;text-align:right;">15 pts</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:11px;color:#6c757d;padding:1px 8px 1px 0;">&#128337; Listing freshness</td>
+                        <td style="font-size:11px;font-weight:700;color:#2E75B6;text-align:right;">10 pts</td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:11px;color:#6c757d;padding:1px 8px 1px 0;">&#128247; Photo quality</td>
+                        <td style="font-size:11px;font-weight:700;color:#2E75B6;text-align:right;">5 pts</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Shortlist reminder -->
+          <!-- ─── MOVE-IN TIMELINE ──────────────────────────────── -->
           <tr>
             <td style="padding:0 32px 24px;">
-              <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:12px 16px;font-size:12px;color:#713f12;">
-                <strong>⏰ Move-in timeline:</strong> Preferred <strong>2026-05-04</strong> · Latest <strong>2026-05-15</strong><br />
-                Add favourites to <code style="background:#fef9c3;padding:1px 4px;border-radius:3px;">data/shortlist.json</code> for tracking.
-              </div>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#fffbeb;border:1px solid #FFD966;border-radius:8px;padding:12px 16px;">
+                    <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:4px;">&#9201; Move-in Timeline</div>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="font-size:12px;color:#78350f;">
+                          Preferred: <strong>2026-05-04</strong> &nbsp;&bull;&nbsp; Latest: <strong>2026-05-15</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:11px;color:#a16207;padding-top:4px;">
+                          Add favourites to <code style="background:#fef9c3;padding:1px 5px;border-radius:3px;font-size:11px;">data/shortlist.json</code> for tracking.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- ─── FOOTER ────────────────────────────────────────── -->
           <tr>
-            <td style="background:#f1f5f9;padding:16px 32px;border-top:1px solid #e2e8f0;">
-              <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center;">
-                Generated by SG Rental Finder · Sources: PropertyGuru, 99.co · Routing: OneMap.sg<br />
-                To unsubscribe, disable the GitHub Actions workflow.
-              </p>
+            <td style="background-color:#f1f3f5;border-top:1px solid #dee2e6;padding:16px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="text-align:center;">
+                    <p style="margin:0 0 4px;font-size:11px;color:#adb5bd;">
+                      Generated by <strong style="color:#6c757d;">sg_rental_finder</strong> &nbsp;&bull;&nbsp; Sources: PropertyGuru, 99.co &nbsp;&bull;&nbsp; Routing: OneMap.sg
+                    </p>
+                    <p style="margin:0;font-size:11px;color:#adb5bd;">
+                      To unsubscribe, disable the GitHub Actions workflow &nbsp;&bull;&nbsp; <a href="https://github.com/areomoon/sg_rental_finder" style="color:#2E75B6;text-decoration:none;">View on GitHub</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
         </table>
+        <!-- /Email container -->
+
       </td>
     </tr>
   </table>

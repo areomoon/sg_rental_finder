@@ -6,6 +6,7 @@ SG Rental Finder — CLI Entry Point
   python run.py --now        立即執行（收集 + 篩選 + 排名 + 發送郵件）
   python run.py --test       測試模式（收集 + 排名，不發送）
   python run.py --preview    預覽摘要（顯示 top 10，不發送）
+  python run.py --demo       Demo 模式（樣本資料 + 發送郵件，無需 Gmail OAuth）
   python run.py --auth-gmail 只執行 Gmail OAuth 流程（初次設定用）
 """
 import argparse
@@ -46,6 +47,13 @@ def cmd_preview(settings: dict) -> None:
     run_digest(settings=settings, send=False, preview=True)
 
 
+def cmd_demo(settings: dict) -> None:
+    from src.digest import run_demo
+    print("🎭 Demo 模式：樣本資料 → filter → enrich → rank → 發送郵件")
+    print("   （無需 Gmail OAuth）")
+    run_demo(settings=settings, send=True)
+
+
 def cmd_auth_gmail() -> None:
     """Trigger Gmail OAuth flow and save token.json."""
     print("🔐 Gmail OAuth 設定")
@@ -74,6 +82,7 @@ def main():
     group.add_argument("--now", action="store_true", help="立即執行（收集 + 發送郵件）")
     group.add_argument("--test", action="store_true", help="測試模式（不發送郵件）")
     group.add_argument("--preview", action="store_true", help="預覽 top 10（不發送）")
+    group.add_argument("--demo", action="store_true", help="Demo 模式（樣本資料，無需 Gmail OAuth）")
     group.add_argument("--auth-gmail", action="store_true", help="Gmail OAuth 初次設定")
 
     args = parser.parse_args()
@@ -85,6 +94,8 @@ def main():
         cmd_test(settings)
     elif args.preview:
         cmd_preview(settings)
+    elif args.demo:
+        cmd_demo(settings)
     elif args.auth_gmail:
         cmd_auth_gmail()
 

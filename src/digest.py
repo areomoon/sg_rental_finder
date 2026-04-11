@@ -216,3 +216,237 @@ def run_digest(
     print("\n✅ Done!")
 
     return f"Sent {len(top_listings)} new listings"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEMO MODE — hardcoded sample listings, no Gmail OAuth required
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _demo_listings() -> list[BaseListing]:
+    """Return 7 realistic SG condo listings for demo/testing."""
+    now = datetime.now(timezone.utc)
+    return [
+        BaseListing(
+            title="The Sail @ Marina Bay #18-05",
+            url="https://www.propertyguru.com.sg/listing/demo-101",
+            source="demo",
+            price_sgd=3600,
+            date_fetched=now,
+            address="2 Marina Boulevard, Singapore 018987",
+            district="D01",
+            bedrooms=2,
+            sqft=710,
+            furnishing="Fully Furnished",
+            property_type="Condo",
+            development_name="The Sail @ Marina Bay",
+            nearest_mrt="Raffles Place",
+            nearest_mrt_walk_min=6.0,
+            photo_count=18,
+            days_on_market=2,
+            thumbnail_url="",
+        ),
+        BaseListing(
+            title="Parc Sovereign #07-12 (1+Study)",
+            url="https://www.propertyguru.com.sg/listing/demo-102",
+            source="demo",
+            price_sgd=3200,
+            date_fetched=now,
+            address="65 Tras Street, Singapore 079004",
+            district="D02",
+            bedrooms=1,
+            sqft=560,
+            furnishing="Fully Furnished",
+            property_type="Condo",
+            development_name="Parc Sovereign",
+            nearest_mrt="Tanjong Pagar",
+            nearest_mrt_walk_min=5.0,
+            photo_count=14,
+            days_on_market=5,
+            thumbnail_url="",
+        ),
+        BaseListing(
+            title="The Clift #15-08",
+            url="https://www.propertyguru.com.sg/listing/demo-103",
+            source="demo",
+            price_sgd=2900,
+            date_fetched=now,
+            address="5 McCallum Street, Singapore 069954",
+            district="D02",
+            bedrooms=1,
+            sqft=495,
+            furnishing="Partially Furnished",
+            property_type="Condo",
+            development_name="The Clift",
+            nearest_mrt="Tanjong Pagar",
+            nearest_mrt_walk_min=4.0,
+            photo_count=10,
+            days_on_market=8,
+            thumbnail_url="",
+        ),
+        BaseListing(
+            title="Concourse Skyline #12-03 (2BR)",
+            url="https://www.propertyguru.com.sg/listing/demo-104",
+            source="demo",
+            price_sgd=3500,
+            date_fetched=now,
+            address="302 Beach Road, Singapore 199600",
+            district="D07",
+            bedrooms=2,
+            sqft=780,
+            furnishing="Fully Furnished",
+            property_type="Condo",
+            development_name="Concourse Skyline",
+            nearest_mrt="Bugis",
+            nearest_mrt_walk_min=7.0,
+            photo_count=16,
+            days_on_market=3,
+            thumbnail_url="",
+        ),
+        BaseListing(
+            title="Citylights #05-18 (1+Study)",
+            url="https://www.propertyguru.com.sg/listing/demo-105",
+            source="demo",
+            price_sgd=3100,
+            date_fetched=now,
+            address="78 Jellicoe Road, Singapore 208737",
+            district="D07",
+            bedrooms=1,
+            sqft=614,
+            furnishing="Fully Furnished",
+            property_type="Condo",
+            development_name="Citylights",
+            nearest_mrt="Lavender",
+            nearest_mrt_walk_min=6.0,
+            photo_count=11,
+            days_on_market=10,
+            thumbnail_url="",
+        ),
+        BaseListing(
+            title="Sophia Hills #08-11 (2BR)",
+            url="https://www.propertyguru.com.sg/listing/demo-106",
+            source="demo",
+            price_sgd=3750,
+            date_fetched=now,
+            address="1 Mount Sophia, Singapore 228459",
+            district="D09",
+            bedrooms=2,
+            sqft=807,
+            furnishing="Fully Furnished",
+            property_type="Condo",
+            development_name="Sophia Hills",
+            nearest_mrt="Dhoby Ghaut",
+            nearest_mrt_walk_min=8.0,
+            photo_count=20,
+            days_on_market=1,
+            thumbnail_url="",
+        ),
+        BaseListing(
+            title="Novena Regency #10-06 (1BR)",
+            url="https://www.propertyguru.com.sg/listing/demo-107",
+            source="demo",
+            price_sgd=2800,
+            date_fetched=now,
+            address="24 Novena Rise, Singapore 297944",
+            district="D11",
+            bedrooms=1,
+            sqft=520,
+            furnishing="Partially Furnished",
+            property_type="Condo",
+            development_name="Novena Regency",
+            nearest_mrt="Novena",
+            nearest_mrt_walk_min=10.0,
+            photo_count=9,
+            days_on_market=14,
+            thumbnail_url="",
+        ),
+    ]
+
+
+def run_demo(
+    settings: Optional[dict] = None,
+    send: bool = True,
+    top_n: Optional[int] = None,
+) -> str:
+    """
+    Demo mode: skip Gmail/scrapers, use hardcoded sample listings.
+    Runs the full filter → enrich → rank → email pipeline.
+    No Gmail OAuth required.
+    """
+    cfg = settings or load_settings()
+    now = datetime.now(timezone.utc)
+
+    print(f"\n🎭 SG Rental Finder DEMO — {now.strftime('%Y-%m-%d %H:%M UTC')}")
+    print("=" * 60)
+    print("  Using hardcoded sample listings (no Gmail OAuth needed)")
+    print("=" * 60)
+
+    search_cfg = cfg.get("search", {})
+    digest_cfg = cfg.get("digest", {})
+    ranker_cfg = cfg.get("ranker", {})
+
+    budget_max = search_cfg.get("budget_max_sgd", 3800)
+    bed_min = search_cfg.get("bedroom_min", 1)
+    bed_max = search_cfg.get("bedroom_max", 2)
+    n = top_n or digest_cfg.get("top_n", 10)
+
+    listings = _demo_listings()
+    print(f"\n📋 Demo: {len(listings)} sample listings loaded")
+
+    # Filter
+    print(f"\n🎯 Filtering (budget ≤S${budget_max}, {bed_min}-{bed_max}BR)...")
+    listings = filter_listings(listings, budget_max_sgd=budget_max, bedroom_min=bed_min, bedroom_max=bed_max)
+    print(f"  After filter: {len(listings)} listings")
+
+    # Enrich
+    print(f"\n🗺️  OneMap enrichment (commute times)...")
+    enricher = OneMapEnricher()
+    listings = enricher.enrich_all(listings)
+
+    # Rank
+    print(f"\n📊 Ranking...")
+    ranker_weights = {
+        "price_per_sqft": ranker_cfg.get("price_per_sqft_weight", 25),
+        "commute_funan": ranker_cfg.get("commute_funan_weight", 30),
+        "commute_raffles": ranker_cfg.get("commute_raffles_weight", 15),
+        "days_on_market": ranker_cfg.get("days_on_market_weight", 10),
+        "photo_count": ranker_cfg.get("photo_count_weight", 5),
+        "mrt_distance": ranker_cfg.get("mrt_distance_weight", 15),
+    }
+    ranked = rank_listings(listings, weights=ranker_weights)
+    if ranked:
+        print(f"  Top score: {ranked[0].score:.1f} — {ranked[0].title[:50]}")
+
+    print("\n📊 Rankings:")
+    for i, l in enumerate(ranked, 1):
+        funan = f"{l.commute_funan_min:.0f}min" if l.commute_funan_min else "?"
+        raffles = f"{l.commute_raffles_min:.0f}min" if l.commute_raffles_min else "?"
+        print(f"  {i:2d}. [{l.score:5.1f}] S${l.price_sgd:,} {l.sqft or '?'}sqft — {l.title[:45]}")
+        print(f"       Funan: {funan} | Raffles: {raffles} | {l.nearest_mrt}")
+
+    top_listings = ranked[:n]
+
+    # Generate HTML
+    print(f"\n📝 Generating HTML digest ({len(top_listings)} listings)...")
+    from .templates_builder import build_html_digest
+    subject, html = build_html_digest(top_listings, now)
+    subject = f"[DEMO] {subject}"
+
+    # Send email
+    if send:
+        print(f"\n📬 Sending demo digest email...")
+        try:
+            sender = EmailSender()
+            success = sender.send(subject, html)
+        except ValueError as e:
+            print(f"  [EmailSender] Config error: {e}")
+            success = False
+
+        if success:
+            print("  ✅ Demo email sent!")
+        else:
+            print("  ❌ Email send failed")
+    else:
+        print("  [Skip] send=False")
+
+    print("\n✅ Demo complete!")
+    return f"Demo: {len(top_listings)} sample listings processed"
