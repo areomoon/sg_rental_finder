@@ -1,51 +1,102 @@
 """
 PropertyGuru Single Listing Scraper
 
-Scrapes a single PropertyGuru listing page using Playwright in headful mode
-(visible browser to better bypass Cloudflare).
+Scrapes a single PropertyGuru listing page using Playwright.
+
+Connection strategy (tried in order):
+1. CDP — connect to the user's REAL Chrome browser on localhost:9222
+         (real Chrome has Cloudflare cookies → bypasses CF challenge)
+2. Headful Playwright — visible browser, waits up to 30 s for CF to resolve
 
 Extraction priority for each field:
 1. JSON-LD structured data  (most reliable — PG embeds schema.org data)
 2. Next.js __NEXT_DATA__    (JavaScript page data object)
 3. Meta og: tags            (og:title, og:image, og:description)
 4. DOM selectors            (multiple fallback selectors per field)
+
+To enable CDP mode, launch Chrome first (run once, then keep it open):
+  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\
+      --remote-debugging-port=9222 --no-first-run --no-default-browser-check \\
+      --user-data-dir=/tmp/chrome_debug &
+
+Or use the helper:  python run.py --start-chrome-debug
 """
 from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Optional
+
+
+# Port where we try to find an existing Chrome instance
+_CDP_PORT = 9222
+# How long to wait for a Cloudflare challenge to auto-resolve (seconds)
+_CF_WAIT_SECS = 35
 
 
 class PGListingScraper:
     """Scrape a single PropertyGuru listing page using Playwright."""
 
-    def __init__(self, headless: bool = False):
-        """headless=False uses visible browser (bypasses Cloudflare better)."""
+    def __init__(self, headless: bool = False, cdp_port: int = _CDP_PORT):
+        """
+        headless=False  → visible browser (bypasses Cloudflare better).
+        cdp_port        → port for existing Chrome CDP connection (0 = skip CDP).
+        """
         self.headless = headless
+        self.cdp_port = cdp_port
         self._playwright = None
         self._browser = None
         self._context = None
+        self._via_cdp = False  # True when connected to user's real Chrome
 
     def __enter__(self):
         from playwright.sync_api import sync_playwright
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(
-            headless=self.headless,
-            args=["--disable-blink-features=AutomationControlled"],
-        )
-        self._context = self._browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-            viewport={"width": 1280, "height": 900},
-        )
+
+        # ── Try CDP first (real Chrome → CF cookies already present) ──────────
+        if self.cdp_port:
+            try:
+                self._browser = self._playwright.chromium.connect_over_cdp(
+                    f"http://localhost:{self.cdp_port}",
+                    timeout=3000,
+                )
+                # Use the first existing context/window instead of a fresh profile
+                if self._browser.contexts:
+                    self._context = self._browser.contexts[0]
+                else:
+                    self._context = self._browser.new_context()
+                self._via_cdp = True
+                print(f"[PGScraper] Connected to existing Chrome via CDP :{self.cdp_port}")
+            except Exception as e:
+                print(f"[PGScraper] CDP not available ({e}); launching headful browser.")
+                self._browser = None
+                self._via_cdp = False
+
+        # ── Fall back to launching a fresh headful browser ────────────────────
+        if not self._via_cdp:
+            self._browser = self._playwright.chromium.launch(
+                headless=self.headless,
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                ],
+            )
+            self._context = self._browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
+                ),
+                viewport={"width": 1280, "height": 900},
+            )
+
         return self
 
     def __exit__(self, *args):
         self.close()
+
+    # ── Public ────────────────────────────────────────────────────────────────
 
     def scrape_listing(self, url: str) -> dict:
         """
@@ -76,29 +127,24 @@ class PGListingScraper:
 
         try:
             print(f"[PGScraper] Navigating to {url}")
-            page.goto(url, wait_until="domcontentloaded", timeout=45000)
-
-            # Wait for any of the key content selectors
             try:
-                page.wait_for_selector(
-                    "[data-automation-id='listing-price'], "
-                    ".listing-price, h1, [class*='price']",
-                    timeout=15000,
-                )
-            except Exception:
-                pass  # Continue anyway — content may still be present
+                page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            except Exception as e:
+                # Timeout on domcontentloaded can happen with CF challenge; continue anyway
+                print(f"[PGScraper] goto warning (continuing): {e}")
 
-            # Let JS render
-            page.wait_for_timeout(2000)
+            # Wait for CF challenge to resolve or real content to appear
+            self._wait_for_real_page(page)
 
-            # Check for Cloudflare block
-            content = page.content()
-            page_title = page.title().lower()
-            if "just a moment" in page_title or "cf-browser-verification" in content.lower():
+            # Final check: if still on CF page, raise with instructions
+            if self._is_cloudflare_page(page):
                 raise RuntimeError(
-                    "Cloudflare challenge detected. "
-                    "The browser window opened — complete the challenge manually, "
-                    "then retry in a few minutes."
+                    "Cloudflare challenge is still active.\n"
+                    "Fix: Launch Chrome with remote debugging so we can use your real session:\n"
+                    "  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome "
+                    "--remote-debugging-port=9222 --no-first-run "
+                    "--user-data-dir=/tmp/chrome_debug &\n"
+                    "Then visit PropertyGuru once in that window, and retry."
                 )
 
             # ── 1. JSON-LD (most reliable) ────────────────────────────────
@@ -126,9 +172,53 @@ class PGListingScraper:
         except Exception as e:
             print(f"[PGScraper] Error scraping {url}: {e}")
         finally:
-            page.close()
+            # Don't close the page when using CDP (it's the user's real window)
+            if not self._via_cdp:
+                page.close()
 
         return result
+
+    # ── Cloudflare helpers ────────────────────────────────────────────────────
+
+    def _is_cloudflare_page(self, page) -> bool:
+        """Return True if the page is still a Cloudflare challenge."""
+        try:
+            title = page.title().lower()
+            if any(kw in title for kw in ("just a moment", "請稍候", "moment", "checking")):
+                return True
+            content = page.content()
+            if "cf-browser-verification" in content or "challenge-platform" in content:
+                return True
+        except Exception:
+            pass
+        return False
+
+    def _wait_for_real_page(self, page) -> None:
+        """
+        Poll until the page is no longer a Cloudflare challenge OR timeout.
+        Prints a message so the user knows what's happening.
+        """
+        deadline = time.time() + _CF_WAIT_SECS
+        first_check = True
+        while time.time() < deadline:
+            if not self._is_cloudflare_page(page):
+                # Also wait a bit for JS to hydrate
+                page.wait_for_timeout(2000)
+                return
+            if first_check:
+                if self._via_cdp:
+                    print(
+                        "[PGScraper] Cloudflare challenge detected in your Chrome — "
+                        "it should auto-resolve. Waiting up to 35 s..."
+                    )
+                else:
+                    print(
+                        "[PGScraper] Cloudflare challenge detected. "
+                        "Waiting up to 35 s for auto-resolve. "
+                        "If the browser opened, you may complete the challenge manually."
+                    )
+                first_check = False
+            time.sleep(2)
 
     # ── Private: extraction methods ───────────────────────────────────────────
 
@@ -161,9 +251,13 @@ class PGListingScraper:
         if not result["title"]:
             result["title"] = data.get("name") or data.get("headline") or ""
 
-        # Address
+        # Address — PG uses spatialCoverage.address or address directly
         if not result["address"]:
-            addr = data.get("address", {})
+            addr = (
+                data.get("spatialCoverage", {}).get("address")
+                or data.get("address")
+                or {}
+            )
             if isinstance(addr, dict):
                 parts = [
                     addr.get("streetAddress", ""),
@@ -243,32 +337,55 @@ class PGListingScraper:
             props = data.get("props", {})
             page_props = props.get("pageProps", {})
 
+            # PG's current structure: pageProps.pageData.data.listingData
+            # Fallback to older key paths for compatibility
+            page_data = page_props.get("pageData", {}).get("data", {})
             listing = (
                 page_props.get("listing")
                 or page_props.get("listingData")
-                or page_props.get("data", {}).get("listing")
+                or page_props.get("listingDetail")
+                or page_data.get("listing")
+                or page_data.get("listingDetail")
+                or page_data.get("listingData")
                 or {}
             )
             if not listing:
                 return
 
             if not result["title"]:
-                result["title"] = listing.get("listingName") or listing.get("title") or ""
+                result["title"] = (
+                    listing.get("listingName")
+                    or listing.get("name")
+                    or listing.get("title")
+                    or ""
+                )
             if result["price_sgd"] is None:
-                price = _parse_price(str(listing.get("price") or listing.get("askingPrice") or ""))
+                price = _parse_price(
+                    str(listing.get("price") or listing.get("askingPrice") or "")
+                )
                 if price:
                     result["price_sgd"] = price
             if not result["address"]:
-                result["address"] = listing.get("address") or listing.get("formattedAddress") or ""
+                result["address"] = (
+                    listing.get("address")
+                    or listing.get("formattedAddress")
+                    or listing.get("streetName")
+                    or ""
+                )
             if result["bedrooms"] is None:
-                beds = listing.get("bedrooms") or listing.get("bedroom")
+                beds = listing.get("bedrooms") or listing.get("bedroom") or listing.get("noOfBedrooms")
                 if beds is not None:
                     try:
                         result["bedrooms"] = int(beds)
                     except (ValueError, TypeError):
                         pass
             if result["size_sqft"] is None:
-                size = listing.get("landArea") or listing.get("floorArea") or listing.get("size")
+                size = (
+                    listing.get("landArea")
+                    or listing.get("floorArea")
+                    or listing.get("size")
+                    or listing.get("builtUpArea")
+                )
                 if size:
                     try:
                         sqft = float(str(size).replace(",", ""))
@@ -277,7 +394,12 @@ class PGListingScraper:
                     except (ValueError, TypeError):
                         pass
             if not result["property_type"]:
-                result["property_type"] = listing.get("propertyType") or listing.get("category") or ""
+                result["property_type"] = (
+                    listing.get("propertyType")
+                    or listing.get("category")
+                    or listing.get("subtype")
+                    or ""
+                )
             if result["built_year"] is None:
                 yr = listing.get("builtYear") or listing.get("completionYear")
                 if yr:
@@ -285,6 +407,15 @@ class PGListingScraper:
                         result["built_year"] = int(yr)
                     except (ValueError, TypeError):
                         pass
+            # Agent info from Next.js data
+            agent = listing.get("agentDetail") or listing.get("agent") or {}
+            if isinstance(agent, dict):
+                if not result["agent_name"]:
+                    result["agent_name"] = agent.get("name") or agent.get("agentName") or ""
+                if not result["agent_phone"]:
+                    phone = agent.get("phone") or agent.get("mobile") or agent.get("contactNumber") or ""
+                    if phone:
+                        result["agent_phone"] = str(phone)
         except Exception:
             pass
 
@@ -294,7 +425,9 @@ class PGListingScraper:
             if not result["title"]:
                 el = page.query_selector('meta[property="og:title"]')
                 if el:
-                    result["title"] = el.get_attribute("content") or ""
+                    raw = el.get_attribute("content") or ""
+                    # Strip " | PropertyGuru Singapore" suffix
+                    result["title"] = re.sub(r'\s*\|\s*PropertyGuru.*$', '', raw).strip()
 
             if not result["photo_url"]:
                 el = page.query_selector('meta[property="og:image"]')
@@ -324,11 +457,13 @@ class PGListingScraper:
                 '[class*="title__"]',
                 ".listing-title",
                 "h1.title",
+                '[class*="ListingName"]',
+                '[class*="listing-name"]',
             ]:
                 el = page.query_selector(sel)
                 if el:
                     text = el.inner_text().strip()
-                    if text and len(text) > 3:
+                    if text and len(text) > 3 and "propertyguru" not in text.lower():
                         result["title"] = text
                         break
 
@@ -341,6 +476,7 @@ class PGListingScraper:
                 '[class*="Price"]',
                 'span[class*="price"]',
                 'div[class*="price"]',
+                '[class*="listing-price"]',
             ]:
                 el = page.query_selector(sel)
                 if el:
@@ -357,6 +493,7 @@ class PGListingScraper:
                 '[class*="address__"]',
                 ".listing-address",
                 '[class*="Address"]',
+                '[class*="location"]',
             ]:
                 el = page.query_selector(sel)
                 if el:
@@ -374,7 +511,9 @@ class PGListingScraper:
                 '[class*="InfoTable"] tr, '
                 '[class*="details__"] li, '
                 '[class*="listingFacts"] li, '
-                '[class*="listing-facts"] li'
+                '[class*="listing-facts"] li, '
+                '[class*="KeyInfo"] li, '
+                '[class*="key-info"] li'
             )
             for item in items:
                 raw = item.inner_text().strip()
@@ -438,7 +577,16 @@ class PGListingScraper:
                         result["size_sqft"] = sqft
                         break
 
-        # Agent name
+        # Agent name — also try extracting from page title (format: "..., by AGENT, ID")
+        if not result["agent_name"]:
+            try:
+                title_text = page.title()
+                m = re.search(r',\s*by\s+(.+?),\s*\d{6,}', title_text)
+                if m:
+                    result["agent_name"] = m.group(1).strip()
+            except Exception:
+                pass
+
         if not result["agent_name"]:
             for sel in [
                 '[data-automation-id="agent-name"]',
@@ -446,6 +594,8 @@ class PGListingScraper:
                 '[class*="agentName"]',
                 '[class*="agent__name"]',
                 '.agent-name',
+                '[class*="AgentName"]',
+                '[class*="agent-info"] [class*="name"]',
             ]:
                 el = page.query_selector(sel)
                 if el:
@@ -454,8 +604,26 @@ class PGListingScraper:
                         result["agent_name"] = text
                         break
 
-        # Agent phone
+        # Agent phone — try WhatsApp link first (most reliable), then tel: links
         if not result["agent_phone"]:
+            # WhatsApp: href like https://wa.me/6591234567 or https://api.whatsapp.com/send?phone=...
+            for sel in [
+                'a[href*="wa.me"]',
+                'a[href*="whatsapp.com/send"]',
+                'a[href*="whatsapp"]',
+                '[class*="whatsapp"] a',
+                'button[class*="whatsapp"]',
+            ]:
+                el = page.query_selector(sel)
+                if el:
+                    href = el.get_attribute("href") or ""
+                    phone = _extract_phone_from_whatsapp_url(href)
+                    if phone:
+                        result["agent_phone"] = phone
+                        break
+
+        if not result["agent_phone"]:
+            # tel: links
             for sel in [
                 'a[href^="tel:"]',
                 '[data-automation-id="agent-phone"]',
@@ -468,6 +636,20 @@ class PGListingScraper:
                     text = href.replace("tel:", "").strip() or el.inner_text().strip()
                     if text:
                         result["agent_phone"] = text
+                        break
+
+        # Availability — dedicated selectors
+        if not result["availability"]:
+            for sel in [
+                '[class*="availability"]',
+                '[class*="Availability"]',
+                '[data-automation-id="availability"]',
+            ]:
+                el = page.query_selector(sel)
+                if el:
+                    text = el.inner_text().strip()
+                    if text:
+                        result["availability"] = text
                         break
 
         # Photos — gallery images
@@ -503,7 +685,16 @@ class PGListingScraper:
                 pass
 
     def close(self):
-        """Close browser and stop Playwright."""
+        """Close browser and stop Playwright. In CDP mode, only close the page."""
+        # Don't close the browser if we connected via CDP — it's the user's real Chrome!
+        if self._via_cdp:
+            try:
+                if self._playwright:
+                    self._playwright.stop()
+            except Exception:
+                pass
+            return
+
         try:
             if self._context:
                 self._context.close()
@@ -574,4 +765,25 @@ def _parse_sqft(text: str) -> Optional[float]:
         sqft = float(m.group(1).replace(",", "")) * 10.764
         if 100 <= sqft <= 10000:
             return round(sqft, 0)
+    return None
+
+
+def _extract_phone_from_whatsapp_url(href: str) -> Optional[str]:
+    """
+    Extract phone number from WhatsApp URL.
+    Handles:
+      https://wa.me/6591234567
+      https://api.whatsapp.com/send?phone=6591234567
+    Returns formatted as +65XXXXXXXX or raw SG number.
+    """
+    if not href:
+        return None
+    # wa.me/PHONE
+    m = re.search(r'wa\.me/(\d+)', href)
+    if m:
+        return f"+{m.group(1)}"
+    # whatsapp.com/send?phone=PHONE
+    m = re.search(r'[?&]phone=(\d+)', href)
+    if m:
+        return f"+{m.group(1)}"
     return None

@@ -457,6 +457,43 @@ def cmd_web() -> None:
     subprocess.run([sys.executable, "web.py"], check=False)
 
 
+# ── Chrome debug helper ───────────────────────────────────────────────────────
+
+def cmd_start_chrome_debug() -> None:
+    """
+    Launch Google Chrome with remote debugging on port 9222.
+
+    This lets the PG scraper connect to your REAL Chrome session (with
+    PropertyGuru cookies already set) to bypass Cloudflare challenges.
+
+    After running this, open PropertyGuru in the Chrome window that appears,
+    then use --add or the Web UI to import listings.
+    """
+    import subprocess
+    chrome_paths = [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ]
+    chrome_bin = next((p for p in chrome_paths if Path(p).exists()), None)
+    if not chrome_bin:
+        print("❌ Google Chrome not found. Install it at https://www.google.com/chrome/")
+        sys.exit(1)
+
+    cmd = [
+        chrome_bin,
+        "--remote-debugging-port=9222",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--user-data-dir=/tmp/chrome_debug_sg_rental",
+    ]
+    print("🚀 Launching Chrome with remote debugging on port 9222...")
+    print("   Visit PropertyGuru in the window that opens to get cookies,")
+    print("   then run --add <URL> or use the Web UI to import listings.")
+    print(f"\n   Command: {' '.join(cmd)}\n")
+    subprocess.Popen(cmd)
+    print("✅ Chrome launched. Keep this terminal open, then run your --add command.")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -475,6 +512,8 @@ def main():
     group.add_argument("--shortlist", action="store_true", help="顯示目前 shortlist")
     group.add_argument("--send-digest", action="store_true", help="將 shortlist 寄送為 email digest")
     group.add_argument("--web", action="store_true", help="啟動 Web UI（伴侶友善）")
+    group.add_argument("--start-chrome-debug", action="store_true",
+                       help="Launch Chrome with remote debugging (port 9222) to bypass Cloudflare")
 
     args = parser.parse_args()
     settings = load_settings()
@@ -497,6 +536,8 @@ def main():
         cmd_send_digest(settings)
     elif args.web:
         cmd_web()
+    elif args.start_chrome_debug:
+        cmd_start_chrome_debug()
 
 
 if __name__ == "__main__":
