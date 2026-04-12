@@ -301,6 +301,30 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── Commute warning ── */
+  .commute-warning {
+    display: inline-block;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+
+  /* ── Ranking legend ── */
+  .ranking-legend {
+    background: #edf2f7;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #4a5568;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+
   /* ── Responsive ── */
   @media (min-width: 600px) {
     .card-top { gap: 20px; }
@@ -366,6 +390,11 @@ https://www.propertyguru.com.sg/listing/for-rent-prestige-heights-22261024
 <div class="page {% if page=='shortlist' %}active{% endif %}" id="page-shortlist">
   <h2>候選清單</h2>
   <p class="subtitle">按分數排序。❤️ 標記喜歡的物件，✏️ 加備註。</p>
+
+  <div class="ranking-legend">
+    排名依據：<strong>價格（50%）</strong> &gt; <strong>通勤時間（30%）</strong> &gt; 面積（10%）+ 可入住日（10%）。
+    通勤超過 40 分鐘自動扣分 ⚠️
+  </div>
 
   <div class="toolbar">
     <button class="btn btn-secondary btn-sm" onclick="loadShortlist()">🔄 重新載入</button>
@@ -571,8 +600,12 @@ function renderCard(entry) {
     ? ` (${entry.price_per_sqft.toFixed(1)}/sqft)`
     : '';
 
-  const commute = entry.commute_funan_min != null
-    ? `${Math.round(entry.commute_funan_min)}min 到 Funan`
+  const commuteMin = entry.commute_funan_min;
+  const commuteWarning = commuteMin != null && commuteMin > 40
+    ? ' <span class="commute-warning">⚠️ 超過 40 分鐘</span>'
+    : '';
+  const commute = commuteMin != null
+    ? `${Math.round(commuteMin)}min 到 Funan`
     : '通勤未知';
 
   const beds = entry.bedrooms != null ? `${entry.bedrooms} 房` : '';
@@ -582,7 +615,7 @@ function renderCard(entry) {
 
   const badges = [
     `<span class="badge badge-price">${esc(price)}${esc(psf)}</span>`,
-    `<span class="badge badge-commute">🚇 ${esc(commute)}</span>`,
+    `<span class="badge badge-commute">🚇 ${esc(commute)}</span>${commuteWarning}`,
     beds ? `<span class="badge badge-beds">🛏 ${esc(beds)}</span>` : '',
     sqft ? `<span class="badge badge-sqft">📐 ${esc(sqft)}</span>` : '',
   ].filter(Boolean).join('');
