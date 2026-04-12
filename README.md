@@ -9,7 +9,69 @@
 
 ---
 
-## 快速開始
+## 操作流程
+
+### 方式一：Web UI（推薦，伴侶友善）
+
+1. 安裝依賴並啟動 web server：
+   ```bash
+   pip install -r requirements.txt
+   playwright install chromium
+   cp .env.example .env   # 填寫 ONEMAP_EMAIL / ONEMAP_PASSWORD
+   python web.py
+   ```
+
+2. 手機或電腦打開瀏覽器：`http://localhost:5000`
+   （同 WiFi 其他設備：`http://你的電腦IP:5000`）
+
+3. 在「匯入」頁面的文字框貼入 PropertyGuru 連結（一行一個）：
+   ```
+   https://www.propertyguru.com.sg/listing/for-rent-cavan-suites-500106201
+   https://www.propertyguru.com.sg/listing/for-rent-the-landmark-60203474
+   ```
+
+4. 點「匯入並評估」—— 系統會自動開啟 Chrome 視窗（繞過 Cloudflare）
+
+5. 等待 30-60 秒（每個 URL 約 10-20 秒）
+
+6. 前往「候選清單」查看評分結果
+
+7. 跟伴侶一起標記 ❤️ / 加備註 / 刪除不喜歡的
+
+8. 點「寄 Email Digest」把排名結果寄到 Gmail（需設定 .env）
+
+9. 點「下載 CSV」匯入 Google Sheets
+
+---
+
+### 方式二：CLI（進階用戶）
+
+```bash
+# 單個 URL
+python run.py --add "https://www.propertyguru.com.sg/listing/..."
+
+# 批次（urls.txt 每行一個連結）
+python run.py --add-batch urls.txt
+
+# 查看 shortlist
+python run.py --shortlist
+
+# 寄 email digest
+python run.py --send-digest
+
+# 啟動 Web UI
+python run.py --web
+```
+
+---
+
+### 方式三：自動排程（GitHub Actions）
+
+每週三 + 週日早上 8am SGT 自動從 Gmail PropertyGuru alerts 抓新物件，評估後寄 email。
+
+---
+
+## 快速開始（初次設定）
 
 ```bash
 git clone https://github.com/areomoon/sg_rental_finder
@@ -18,7 +80,9 @@ pip install -r requirements.txt
 playwright install chromium
 cp .env.example .env
 # 填寫 .env 後執行：
-python run.py --test
+python web.py   # Web UI 方式
+# 或
+python run.py --test   # CLI 測試
 ```
 
 ---
@@ -177,8 +241,9 @@ sg_rental_finder/
 │   ├── collectors/
 │   │   ├── base.py             # BaseListing 資料模型
 │   │   ├── gmail_alerts.py     # 主要：Gmail API 抓取 PG/99co alerts
-│   │   ├── propertyguru_scraper.py  # 備援：Playwright
-│   │   └── ninetynineco_scraper.py  # 備援：Playwright
+│   │   ├── pg_listing_scraper.py   # 單一 PG 連結抓取（--add / Web UI）
+│   │   ├── propertyguru_scraper.py  # 備援：Playwright 搜尋頁
+│   │   └── ninetynineco_scraper.py  # 備援：Playwright 搜尋頁
 │   ├── processor/
 │   │   ├── parser.py           # 解析 Email HTML
 │   │   ├── dedup.py            # 跨來源去重
@@ -191,13 +256,16 @@ sg_rental_finder/
 │   └── templates_builder.py    # HTML email 生成
 ├── data/
 │   ├── seen_listings.json      # 已發送的 URL（避免重複）
-│   └── shortlist.json          # 手動收藏
+│   ├── shortlist.json          # 手動收藏（--add 和 Web UI 共用）
+│   └── shortlist.csv           # 自動匯出（Google Sheets 匯入用）
 ├── templates/
-│   └── daily_rental_digest.html  # HTML email 模板
+│   ├── daily_rental_digest.html  # HTML email 模板
+│   └── web_ui.html             # Web UI 介面（Flask 使用）
 ├── .github/workflows/
 │   └── twice-weekly-digest.yml   # Wed + Sun 8am SGT
 ├── requirements.txt
 ├── .env.example
+├── web.py                      # Flask Web UI
 └── run.py                      # CLI 入口
 ```
 

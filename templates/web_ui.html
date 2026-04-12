@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SG Rental Finder 🏠</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f0f4f8;
+    color: #2d3748;
+    min-height: 100vh;
+  }
+
+  /* ── Nav ── */
+  nav {
+    background: #2E75B6;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    gap: 8px;
+  }
+  nav .brand {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+  }
+  nav a {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background .15s;
+  }
+  nav a:hover, nav a.active { background: rgba(255,255,255,0.2); color: white; }
+
+  /* ── Page container ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* ── Section headings ── */
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1a202c;
+  }
+  .subtitle { color: #718096; font-size: 14px; margin-bottom: 20px; }
+
+  /* ── Card ── */
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  /* ── Import form ── */
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 14px;
+    font-family: monospace;
+    resize: vertical;
+    transition: border-color .2s;
+    line-height: 1.6;
+  }
+  textarea:focus { outline: none; border-color: #2E75B6; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .btn-primary { background: #2E75B6; color: white; }
+  .btn-primary:hover { background: #245f94; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { background: #edf2f7; color: #4a5568; }
+  .btn-secondary:hover { background: #e2e8f0; }
+  .btn-danger { background: #fff5f5; color: #c53030; }
+  .btn-danger:hover { background: #fed7d7; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 8px; }
+  .btn-full { width: 100%; justify-content: center; margin-top: 12px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Progress / status ── */
+  .progress-box {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 12px;
+  }
+  .progress-box.visible { display: block; }
+  .progress-title { font-weight: 600; color: #2b6cb0; margin-bottom: 8px; }
+  .progress-bar-track {
+    background: #bee3f8;
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-bar-fill {
+    background: #2E75B6;
+    height: 100%;
+    border-radius: 99px;
+    transition: width .4s ease;
+  }
+  .progress-text { font-size: 13px; color: #4a5568; }
+
+  .result-box { display: none; margin-top: 16px; }
+  .result-box.visible { display: block; }
+  .result-item {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .result-success { background: #f0fff4; border: 1px solid #c6f6d5; color: #276749; }
+  .result-error { background: #fff5f5; border: 1px solid #fed7d7; color: #c53030; }
+
+  /* ── Shortlist cards ── */
+  .listing-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    margin-bottom: 16px;
+    transition: box-shadow .2s;
+  }
+  .listing-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+  .listing-card.favorited { border: 2px solid #fc8181; }
+
+  .card-top {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+  }
+  .card-photo {
+    width: 90px;
+    height: 90px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #e2e8f0;
+  }
+  .card-photo-placeholder {
+    width: 90px;
+    height: 90px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #e2e8f0, #cbd5e0);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .card-info { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-address { font-size: 13px; color: #718096; margin-bottom: 8px; }
+
+  .card-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .badge {
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-price { background: #ebf8ff; color: #2b6cb0; }
+  .badge-commute { background: #f0fff4; color: #276749; }
+  .badge-beds { background: #faf5ff; color: #553c9a; }
+  .badge-sqft { background: #fffaf0; color: #744210; }
+  .badge-score { background: #fff5f5; color: #c53030; font-size: 13px; }
+
+  /* Score bar */
+  .score-bar-track {
+    background: #e2e8f0;
+    border-radius: 99px;
+    height: 6px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #48bb78, #2E75B6);
+  }
+  .score-label {
+    font-size: 12px;
+    color: #718096;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .card-actions a.btn { text-decoration: none; }
+
+  /* Notes textarea */
+  .note-area {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    resize: none;
+    height: 60px;
+    font-family: inherit;
+    color: #4a5568;
+    margin: 0 16px 12px;
+    width: calc(100% - 32px);
+  }
+  .note-area:focus { outline: none; border-color: #2E75B6; }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .toolbar-count {
+    margin-left: auto;
+    font-size: 14px;
+    color: #718096;
+    font-weight: 500;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2d3748;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: transform .3s ease;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #a0aec0;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 16px; }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Responsive ── */
+  @media (min-width: 600px) {
+    .card-top { gap: 20px; }
+    .card-photo, .card-photo-placeholder { width: 120px; height: 100px; }
+    .card-title { font-size: 17px; white-space: normal; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="brand">🏠 租屋助手</span>
+  <a href="#" onclick="showPage('import')" id="nav-import" class="{% if page=='import' %}active{% endif %}">匯入</a>
+  <a href="#" onclick="showPage('shortlist')" id="nav-shortlist" class="{% if page=='shortlist' %}active{% endif %}">候選清單</a>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     IMPORT PAGE
+═══════════════════════════════════════════════════════════════ -->
+<div class="page {% if page=='import' %}active{% endif %}" id="page-import">
+  <h2>匯入 PropertyGuru 物件</h2>
+  <p class="subtitle">貼入一個或多個 PropertyGuru 連結（每行一個），系統自動評估通勤時間和分數</p>
+
+  <div class="card">
+    <textarea
+      id="urls-input"
+      placeholder="https://www.propertyguru.com.sg/listing/for-rent-cavan-suites-500106201
+https://www.propertyguru.com.sg/listing/for-rent-the-landmark-60203474
+https://www.propertyguru.com.sg/listing/for-rent-prestige-heights-22261024
+
+（每行貼一個連結，# 開頭的行會被忽略）"
+    ></textarea>
+
+    <button class="btn btn-primary btn-full" id="import-btn" onclick="startImport()">
+      <span id="import-btn-text">🔍 匯入並評估</span>
+    </button>
+  </div>
+
+  <div class="progress-box" id="progress-box">
+    <div class="progress-title" id="progress-title">正在處理...</div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-text" id="progress-text">0 / 0</div>
+  </div>
+
+  <div class="result-box" id="result-box"></div>
+
+  <div class="card" style="margin-top:24px; background:#fffbeb; border:1px solid #fbd38d;">
+    <p style="font-size:14px; color:#744210; line-height:1.6;">
+      <strong>說明：</strong>點擊「匯入並評估」後，系統會自動開啟 Chrome 瀏覽器視窗來抓取 PropertyGuru 的物件資料（這是為了繞過 Cloudflare 保護）。
+      請不要關閉彈出的瀏覽器視窗。每個連結約需 10-30 秒處理。
+    </p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SHORTLIST PAGE
+═══════════════════════════════════════════════════════════════ -->
+<div class="page {% if page=='shortlist' %}active{% endif %}" id="page-shortlist">
+  <h2>候選清單</h2>
+  <p class="subtitle">按分數排序。❤️ 標記喜歡的物件，✏️ 加備註。</p>
+
+  <div class="toolbar">
+    <button class="btn btn-secondary btn-sm" onclick="loadShortlist()">🔄 重新載入</button>
+    <a class="btn btn-secondary btn-sm" href="/api/export/csv" download>📥 下載 CSV</a>
+    <button class="btn btn-secondary btn-sm" onclick="sendDigest()">📧 寄 Email Digest</button>
+    <span class="toolbar-count" id="listing-count"></span>
+  </div>
+
+  <div id="listings-container">
+    <div class="empty-state">
+      <div class="icon">🏠</div>
+      <p>載入中...</p>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Page switching ───────────────────────────────────────────────────────────
+
+const initialPage = "{{ page }}";
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'shortlist') loadShortlist();
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ─── Import ───────────────────────────────────────────────────────────────────
+
+let pollTimer = null;
+
+async function startImport() {
+  const input = document.getElementById('urls-input').value.trim();
+  const urls = input.split('\n')
+    .map(u => u.trim())
+    .filter(u => u && !u.startsWith('#') && u.startsWith('http'));
+
+  if (urls.length === 0) {
+    showToast('請先貼入有效的 PropertyGuru 連結');
+    return;
+  }
+
+  const btn = document.getElementById('import-btn');
+  const btnText = document.getElementById('import-btn-text');
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span> 處理中...';
+
+  document.getElementById('progress-box').classList.add('visible');
+  document.getElementById('result-box').classList.remove('visible');
+  document.getElementById('result-box').innerHTML = '';
+  updateProgress(0, urls.length, '準備開始...');
+
+  try {
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '匯入失敗');
+
+    pollImportStatus(data.job_id, urls.length);
+  } catch (e) {
+    btn.disabled = false;
+    btnText.textContent = '🔍 匯入並評估';
+    showToast('錯誤：' + e.message);
+  }
+}
+
+function pollImportStatus(jobId, total) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/api/import/status/' + jobId);
+      const job = await res.json();
+
+      const done = job.done_count || 0;
+      updateProgress(done, total, `處理中：${done} / ${total}`);
+
+      if (job.status === 'done' || job.status === 'error') {
+        clearInterval(pollTimer);
+        onImportDone(job);
+      }
+    } catch (e) {
+      // Retry silently
+    }
+  }, 1500);
+}
+
+function updateProgress(done, total, text) {
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = text;
+  document.getElementById('progress-title').textContent =
+    done >= total && total > 0 ? '✅ 完成！' : '正在處理...';
+}
+
+function onImportDone(job) {
+  const btn = document.getElementById('import-btn');
+  const btnText = document.getElementById('import-btn-text');
+  btn.disabled = false;
+  btnText.textContent = '🔍 匯入並評估';
+
+  const results = (job.results || []).concat(job.errors || []);
+  const successCount = (job.results || []).length;
+  const failCount = (job.errors || []).length;
+
+  updateProgress(job.total, job.total, `完成：${successCount} 成功，${failCount} 失敗`);
+
+  const box = document.getElementById('result-box');
+  box.classList.add('visible');
+  box.innerHTML = '';
+
+  if (successCount > 0 || failCount > 0) {
+    const summary = document.createElement('div');
+    summary.className = 'result-item result-success';
+    summary.innerHTML = `<strong>完成！</strong>成功匯入 ${successCount} 個物件，失敗 ${failCount} 個。<br>前往「候選清單」查看結果。`;
+    box.appendChild(summary);
+  }
+
+  (job.errors || []).forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'result-item result-error';
+    div.textContent = `❌ ${e.url || ''}: ${e.error || '未知錯誤'}`;
+    box.appendChild(div);
+  });
+
+  (job.results || []).forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'result-item result-success';
+    const score = r.score ? ` — 分數 ${Math.round(r.score)}/100` : '';
+    const price = r.price_sgd ? ` S$${Number(r.price_sgd).toLocaleString()}` : '';
+    div.textContent = `✅ ${r.title || r.url}${price}${score}`;
+    box.appendChild(div);
+  });
+
+  if (successCount > 0) showToast(`✅ 成功匯入 ${successCount} 個物件！`);
+}
+
+// ─── Shortlist ────────────────────────────────────────────────────────────────
+
+let shortlistData = [];
+
+async function loadShortlist() {
+  try {
+    const res = await fetch('/api/shortlist');
+    shortlistData = await res.json();
+    renderShortlist();
+  } catch (e) {
+    showToast('載入失敗：' + e.message);
+  }
+}
+
+function renderShortlist() {
+  const container = document.getElementById('listings-container');
+  const count = document.getElementById('listing-count');
+
+  count.textContent = `共 ${shortlistData.length} 個物件`;
+
+  if (shortlistData.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🏠</div>
+        <p>清單是空的，請先到「匯入」頁面新增物件</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = shortlistData.map(entry => renderCard(entry)).join('');
+}
+
+function renderCard(entry) {
+  const id = entry.id || '';
+  const favorited = entry.favorite ? 'favorited' : '';
+  const favIcon = entry.favorite ? '❤️' : '🤍';
+
+  const photo = entry.photo_url
+    ? `<img class="card-photo" src="${esc(entry.photo_url)}" alt="photo" onerror="this.style.display='none'">`
+    : `<div class="card-photo-placeholder">🏢</div>`;
+
+  const price = entry.price_sgd
+    ? `S$${Number(entry.price_sgd).toLocaleString()}/mo`
+    : '價格不詳';
+  const psf = entry.price_per_sqft
+    ? ` (${entry.price_per_sqft.toFixed(1)}/sqft)`
+    : '';
+
+  const commute = entry.commute_funan_min != null
+    ? `${Math.round(entry.commute_funan_min)}min 到 Funan`
+    : '通勤未知';
+
+  const beds = entry.bedrooms != null ? `${entry.bedrooms} 房` : '';
+  const sqft = entry.size_sqft ? `${Math.round(entry.size_sqft)} sqft` : '';
+  const score = entry.score ? Math.round(entry.score) : 0;
+  const scorePct = score;
+
+  const badges = [
+    `<span class="badge badge-price">${esc(price)}${esc(psf)}</span>`,
+    `<span class="badge badge-commute">🚇 ${esc(commute)}</span>`,
+    beds ? `<span class="badge badge-beds">🛏 ${esc(beds)}</span>` : '',
+    sqft ? `<span class="badge badge-sqft">📐 ${esc(sqft)}</span>` : '',
+  ].filter(Boolean).join('');
+
+  const agent = entry.agent_name
+    ? `<span style="font-size:12px;color:#a0aec0;margin-left:auto;">仲介：${esc(entry.agent_name)}</span>`
+    : '';
+
+  const note = entry.notes || '';
+
+  return `
+<div class="listing-card ${favorited}" id="card-${id}">
+  <div class="card-top">
+    ${photo}
+    <div class="card-info">
+      <div class="card-title">${esc(entry.title || '未知物件')}</div>
+      <div class="card-address">${esc(entry.address || '')}</div>
+      <div class="card-badges">${badges}</div>
+      <div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" style="width:${scorePct}%"></div>
+        </div>
+        <div class="score-label">
+          <span>分數 ${score}/100</span>
+          ${entry.availability ? `<span>可入住：${esc(entry.availability)}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <textarea
+    class="note-area"
+    id="note-${id}"
+    placeholder="加備註（例：採光好、近市場）"
+    onblur="saveNote('${id}')"
+  >${esc(note)}</textarea>
+
+  <div class="card-actions">
+    <button class="btn btn-secondary btn-sm" onclick="toggleFavorite('${id}')">
+      <span id="fav-${id}">${favIcon}</span> 喜歡
+    </button>
+    <a class="btn btn-secondary btn-sm" href="${esc(entry.url || '#')}" target="_blank">🔗 PG 連結</a>
+    <button class="btn btn-danger btn-sm" onclick="deleteEntry('${id}')">🗑 刪除</button>
+    ${agent}
+  </div>
+</div>`;
+}
+
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function toggleFavorite(id) {
+  try {
+    const res = await fetch(`/api/shortlist/${id}/favorite`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const card = document.getElementById('card-' + id);
+      const icon = document.getElementById('fav-' + id);
+      if (data.favorite) {
+        card.classList.add('favorited');
+        icon.textContent = '❤️';
+        showToast('已標記為喜歡！');
+      } else {
+        card.classList.remove('favorited');
+        icon.textContent = '🤍';
+        showToast('已取消喜歡');
+      }
+      // Update local data
+      const entry = shortlistData.find(e => e.id === id);
+      if (entry) entry.favorite = data.favorite;
+    }
+  } catch (e) {
+    showToast('操作失敗：' + e.message);
+  }
+}
+
+async function saveNote(id) {
+  const note = document.getElementById('note-' + id).value;
+  try {
+    await fetch(`/api/shortlist/${id}/note`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note }),
+    });
+    showToast('備註已儲存');
+  } catch (e) {
+    // Silently fail for notes
+  }
+}
+
+async function deleteEntry(id) {
+  if (!confirm('確定要刪除這個物件嗎？')) return;
+  try {
+    const res = await fetch(`/api/shortlist/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      shortlistData = shortlistData.filter(e => e.id !== id);
+      renderShortlist();
+      showToast('已刪除');
+    }
+  } catch (e) {
+    showToast('刪除失敗：' + e.message);
+  }
+}
+
+async function sendDigest() {
+  if (!confirm('確定要把目前的候選清單寄送到 Gmail 嗎？')) return;
+  showToast('寄送中...');
+  try {
+    const res = await fetch('/api/send-digest', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('✅ Email 已寄出！');
+    } else {
+      showToast('❌ ' + (data.error || '寄送失敗'));
+    }
+  } catch (e) {
+    showToast('寄送失敗：' + e.message);
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (initialPage === 'shortlist') {
+    loadShortlist();
+  }
+});
+</script>
+</body>
+</html>
