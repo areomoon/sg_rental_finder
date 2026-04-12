@@ -7,8 +7,8 @@ SG Rental Finder — Web UI
 啟動：
   python web.py
 
-然後在瀏覽器開啟 http://localhost:5000
-（同 WiFi 其他設備：http://你的電腦IP:5000）
+然後在瀏覽器開啟 http://localhost:5001
+（同 WiFi 其他設備：http://你的電腦IP:5001）
 """
 from __future__ import annotations
 
@@ -437,12 +437,12 @@ if __name__ == "__main__":
     print()
     print("🏠 SG Rental Finder — Web UI")
     print("=" * 45)
-    print(f"→ 本機開啟：http://localhost:5000")
-    print(f"→ 同 WiFi 其他設備：http://{local_ip}:5000")
+    print(f"→ 本機開啟：http://localhost:5001")
+    print(f"→ 同 WiFi 其他設備：http://{local_ip}:5001")
     print()
     print("說明：匯入時會自動開啟 Chrome 瀏覽器視窗（用來繞過 Cloudflare）")
     print("按 Ctrl+C 停止")
     print("=" * 45)
     print()
 
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    app.run(host="0.0.0.0", port=5001, debug=False, threaded=True)
