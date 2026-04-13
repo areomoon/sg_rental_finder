@@ -38,11 +38,18 @@ jobs:
             seen-listings-
 
       - name: Write Gmail OAuth token from secret
-        # Writes the token.json so GmailAlertsCollector can authenticate
+        # Writes token.json so GmailAlertsCollector can authenticate.
+        # secrets context is not available in if: conditions, so we gate inside the shell.
+        env:
+          GMAIL_OAUTH_TOKEN: ${{ secrets.GMAIL_OAUTH_TOKEN }}
         run: |
           mkdir -p config
-          echo '${{ secrets.GMAIL_OAUTH_TOKEN }}' > config/token.json
-        if: secrets.GMAIL_OAUTH_TOKEN != ''
+          if [ -n "$GMAIL_OAUTH_TOKEN" ]; then
+            echo "$GMAIL_OAUTH_TOKEN" > config/token.json
+            echo "token.json written"
+          else
+            echo "GMAIL_OAUTH_TOKEN secret not set — skipping token.json"
+          fi
 
       - name: Run digest
         env:
